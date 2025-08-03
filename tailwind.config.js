@@ -9,6 +9,6 @@ export default {
   },
   plugins: [daisyui, scrollbar],
   daisyui: {
-    themes: ["retro", "dark"], // <-- Add this line
+    themes: ["retro", "dark"],
   },
 };
