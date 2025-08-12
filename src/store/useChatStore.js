@@ -41,13 +41,24 @@ export const useChatStore = create((set, get) => ({
       }
       const res = await axios.get(
         `https://talko-backend.onrender.com/api/messages/${userId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000 // 10 second timeout
+        }
       );
-      set({ messages: res.data });
+      // Ensure we have an array and handle potential undefined/null responses
+      const messages = Array.isArray(res?.data) ? res.data : [];
+      set({ messages });
     } catch (error) {
       console.error(
-        error.response?.data?.message || "Error in fetching messages"
+        "Error fetching messages:", 
+        error.response?.data?.message || error.message
       );
+      // Set empty array on error to prevent undefined state
+      set({ messages: [] });
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -96,16 +107,34 @@ export const useChatStore = create((set, get) => ({
 
   subscribeToMessages: () => {
     const { selectedUser, socket } = get();
-    if (!selectedUser || !socket) return;
+    if (!selectedUser?.clerkUserId || !socket) {
+      console.warn("Cannot subscribe to messages: missing selectedUser or socket");
+      return;
+    }
+    
+    // Clean up any existing listeners to prevent duplicates
     socket.off("newMessage");
+    
     socket.on("newMessage", (newMessage) => {
-      const isFromSelected =
-        newMessage.fromClerkId === selectedUser.clerkUserId;
-      const isDuplicate = get().messages.some(
-        (msg) => msg._id === newMessage._id
-      );
-      if (isFromSelected && !isDuplicate) {
-        set({ messages: [...get().messages, newMessage] });
+      try {
+        if (!newMessage?._id) {
+          console.warn("Received invalid message:", newMessage);
+          return;
+        }
+        
+        const { messages } = get();
+        const isFromSelected = newMessage.fromClerkId === selectedUser.clerkUserId;
+        const isDuplicate = messages.some(msg => msg._id === newMessage._id);
+        
+        if (isFromSelected && !isDuplicate) {
+          set({ 
+            messages: [...messages, newMessage].sort((a, b) => 
+              new Date(a.createdAt) - new Date(b.createdAt)
+            )
+          });
+        }
+      } catch (error) {
+        console.error("Error processing new message:", error);
       }
     });
   },
