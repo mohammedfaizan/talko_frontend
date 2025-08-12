@@ -2,6 +2,7 @@
 
 .chatContainer {
   @apply flex flex-col h-full w-full overflow-hidden;
+  position: relative;
 }
 
 .chatHeader {
@@ -18,6 +19,7 @@
 
 .messagesArea {
   @apply flex-1 overflow-y-auto p-3 md:p-5 space-y-4 scrollbar-thin;
+  padding-bottom: 100px; /* Add padding to prevent messages from being hidden behind the input */
 }
 
 .chatImage {
@@ -50,4 +52,9 @@
 
 .messageInputContainer {
   @apply border-t border-base-300 p-3 md:p-5;
+  position: sticky;
+  bottom: 0;
+  background: inherit;
+  z-index: 10;
+  width: 100%;
 }
