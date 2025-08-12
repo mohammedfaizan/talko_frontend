@@ -135,7 +135,7 @@ const Chat = () => {
                 {message.image && (
                   <div className="relative">
                     <img
-                      src={message.image}
+                      src={typeof message.image === 'object' ? message.image.url : message.image}
                       alt="Attachment"
                       className="max-w-full sm:max-w-xs md:max-w-sm rounded-md mb-2"
                       loading="lazy"
@@ -145,6 +145,18 @@ const Chat = () => {
                         e.target.style.display = 'none';
                       }}
                     />
+                    {/* Show thumbnail if available */}
+                    {message.image.thumbnailUrl && (
+                      <img
+                        src={message.image.thumbnailUrl}
+                        alt="Thumbnail"
+                        className="hidden" // Hide by default, used as fallback
+                        onError={(e) => {
+                          // If thumbnail fails, it will be hidden
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    )}
                   </div>
                 )}
                 {message.text && <p className="break-words">{message.text}</p>}

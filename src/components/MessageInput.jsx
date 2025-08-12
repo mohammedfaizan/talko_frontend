@@ -260,19 +260,34 @@ const MessageInput = () => {
     if (!text && !image) return;
 
     const token = await getToken({ template: "myjwt" });
-    if (!token) return;
-    const formData = new FormData();
-    if (text) formData.append("text", text);
-    if (image) formData.append("image", image);
+    if (!token) {
+      toast.error("Authentication failed. Please try again.");
+      return;
+    }
 
-    await sendMessages(formData, token);
-    setText("");
-    removeImage();
+    try {
+      const formData = new FormData();
+      if (text) formData.append("text", text);
+      if (image) formData.append("image", image);
+
+      console.log('Sending message with form data:', {
+        hasText: !!text,
+        hasImage: !!image,
+        imageName: image?.name
+      });
+
+      await sendMessages(formData, token);
+      setText("");
+      removeImage();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message. Please try again.");
+    }
   };
 
   return (
     <form className={styles.formContainer} onSubmit={handleSendMessage}>
-      {/* Show dummy image preview */}
+      {/* Image preview */}
       {imagePreview && (
         <div className={styles.previewContainer}>
           <img
@@ -291,31 +306,36 @@ const MessageInput = () => {
       )}
 
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.imageButton}
-          onClick={() => fileInputRef.current?.click()}
-        >
+        <label className={styles.imageButton}>
           <Image size={20} />
-        </button>
-        {/* Hidden file input(not functional in static version) */}
-        <input
-          type="file"
-          hidden
-          accept="image/*"
-          ref={fileInputRef}
-          onChange={handleImageChange}
-        />
+          <input
+            type="file"
+            hidden
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+          />
+        </label>
+        
         <input
           type="text"
-          //   value={dummyText}
-          value={text}
+          value={text || ""}
           placeholder="Type a message..."
           className={styles.textInput}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSendMessage(e);
+            }
+          }}
         />
-        {/* Send button is enabled since we have dummy content */}
-        <button type="submit" className={styles.sendButton}>
+        
+        <button 
+          type="submit" 
+          className={styles.sendButton}
+          disabled={!text && !image}
+        >
           <Send size={20} />
         </button>
       </div>

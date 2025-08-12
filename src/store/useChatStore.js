@@ -87,44 +87,55 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  sendMessages: async (messageData, token) => {
+  sendMessages: async (formData, token) => {
     const { selectedUser, messages } = get();
+    if (!selectedUser?.clerkUserId) {
+      console.error('No selected user');
+      throw new Error('No user selected');
+    }
+
     try {
-      const res = await axios.post(
+      console.log('Sending message to:', selectedUser.clerkUserId);
+      
+      const response = await axios.post(
         `https://talko-backend.onrender.com/api/messages/send/${selectedUser.clerkUserId}`,
-        messageData,
+        formData,
         { 
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data' // Important for file uploads
+            'Content-Type': 'multipart/form-data'
           },
-          timeout: 30000 // Increase timeout for file uploads
+          timeout: 30000
         }
       );
 
-      console.log('Message sent successfully:', res.data);
+      console.log('Message sent successfully:', response.data);
       
-      // Process the new message to ensure proper image URL
-      const newMessage = res.data;
+      // Process the response to ensure proper message format
+      const newMessage = response.data;
+      
+      // If the message has an image, make sure it's in the correct format
       if (newMessage.image) {
-        // If the image is from ImageKit, use the URL directly
-        if (typeof newMessage.image === 'object' && newMessage.image.url) {
+        // If it's already a URL string, use it as is
+        if (typeof newMessage.image === 'string') {
+          if (!newMessage.image.startsWith('http')) {
+            newMessage.image = `https://talko-backend.onrender.com${newMessage.image.startsWith('/') ? '' : '/'}${newMessage.image}`;
+          }
+        } 
+        // If it's an object (from ImageKit), extract the URL
+        else if (newMessage.image.url) {
           newMessage.image = newMessage.image.url;
-        }
-        // Ensure it's a valid URL
-        else if (typeof newMessage.image === 'string' && !newMessage.image.startsWith('http')) {
-          newMessage.image = `https://talko-backend.onrender.com${newMessage.image.startsWith('/') ? '' : '/'}${newMessage.image}`;
         }
       }
 
       // Add the new message to the current messages
-      set({ 
-        messages: [...messages, newMessage].sort((a, b) => 
-          new Date(a.createdAt) - new Date(b.createdAt)
-        )
-      });
+      const updatedMessages = [...messages, newMessage].sort((a, b) => 
+        new Date(a.createdAt) - new Date(b.createdAt)
+      );
       
+      set({ messages: updatedMessages });
       return newMessage;
+      
     } catch (error) {
       console.error('Error sending message:', {
         message: error.message,
@@ -132,7 +143,7 @@ export const useChatStore = create((set, get) => ({
         data: error.response?.data,
         config: error.config
       });
-      throw error; // Re-throw to handle in the component
+      throw error;
     }
   },
 
