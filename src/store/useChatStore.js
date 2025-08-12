@@ -52,17 +52,29 @@ export const useChatStore = create((set, get) => ({
       
       // Process messages to ensure proper image URLs
       const messages = Array.isArray(res?.data) 
-        ? res.data.map(msg => ({
-            ...msg,
-            // Ensure image URL is absolute
-            image: msg.image 
-              ? msg.image.startsWith('http') 
+        ? res.data.map(msg => {
+            // Debug log for each message
+            console.log('Processing message:', msg);
+            
+            // Handle image URL
+            let imageUrl = null;
+            if (msg.image) {
+              // Check if the image URL is already absolute
+              imageUrl = msg.image.startsWith('http') 
                 ? msg.image 
-                : `https://talko-backend.onrender.com/${msg.image}`
-              : null
-          }))
+                : `https://talko-backend.onrender.com${msg.image.startsWith('/') ? '' : '/'}${msg.image}`;
+              
+              console.log('Processed image URL:', { original: msg.image, processed: imageUrl });
+            }
+            
+            return {
+              ...msg,
+              image: imageUrl
+            };
+          })
         : [];
         
+      console.log('Processed messages:', messages);
       set({ messages });
     } catch (error) {
       console.error(

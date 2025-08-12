@@ -56,6 +56,10 @@ const Chat = () => {
   }, [selectedUser, fetchMessages, unsubscribeFromMessages]);
 
   useEffect(() => {
+    console.log('Current messages:', messages);
+  }, [messages]);
+
+  useEffect(() => {
     if (messageEndRef.current && messages.length > 0) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
@@ -131,12 +135,13 @@ const Chat = () => {
                 {message.image && (
                   <div className="relative">
                     <img
-                      src={message.image.startsWith('http') ? message.image : `https://talko-backend.onrender.com/${message.image}`}
+                      src={message.image}
                       alt="Attachment"
                       className="max-w-full sm:max-w-xs md:max-w-sm rounded-md mb-2"
                       loading="lazy"
                       onError={(e) => {
                         console.error('Failed to load image:', message.image, e);
+                        console.log('Message object:', message);
                         e.target.style.display = 'none';
                       }}
                     />
