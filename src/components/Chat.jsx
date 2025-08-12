@@ -133,33 +133,30 @@ const Chat = () => {
               </div>
               <div className={styles.chatBubble}>
                 {message.image && (
-                  <div className="relative">
+                  <div className="relative mb-2">
                     <img
                       src={typeof message.image === 'object' ? message.image.url : message.image}
-                      alt="Attachment"
-                      className="max-w-full sm:max-w-xs md:max-w-sm rounded-md mb-2"
-                      loading="lazy"
+                      alt="Shared content"
+                      className="max-w-full sm:max-w-xs md:max-w-sm rounded-md"
                       onError={(e) => {
-                        console.error('Failed to load image:', message.image, e);
-                        console.log('Message object:', message);
-                        e.target.style.display = 'none';
+                        console.error('Failed to load image:', message.image);
+                        // If the main image fails to load, try to use thumbnail if available
+                        if (typeof message.image === 'object' && message.image.thumbnailUrl) {
+                          e.target.src = message.image.thumbnailUrl;
+                        } else {
+                          e.target.alt = 'Failed to load image';
+                          e.target.className = 'max-w-xs p-4 text-gray-500';
+                        }
                       }}
+                      loading="lazy"
                     />
-                    {/* Show thumbnail if available */}
-                    {message.image.thumbnailUrl && (
-                      <img
-                        src={message.image.thumbnailUrl}
-                        alt="Thumbnail"
-                        className="hidden" // Hide by default, used as fallback
-                        onError={(e) => {
-                          // If thumbnail fails, it will be hidden
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    )}
                   </div>
                 )}
-                {message.text && <p className="break-words">{message.text}</p>}
+                {message.text && (
+                  <p className={`break-words ${message.image ? 'mt-2' : ''}`}>
+                    {message.text}
+                  </p>
+                )}
               </div>
               {index === messages.length - 1 && <div id="message-end" />}
             </div>

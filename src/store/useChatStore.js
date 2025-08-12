@@ -39,6 +39,8 @@ export const useChatStore = create((set, get) => ({
         console.error("getMessages called with undefined userId");
         return;
       }
+      
+      console.log('Fetching messages for user:', userId);
       const res = await axios.get(
         `https://talko-backend.onrender.com/api/messages/${userId}`,
         { 
@@ -50,38 +52,53 @@ export const useChatStore = create((set, get) => ({
         }
       );
       
-      // Process messages to ensure proper image URLs
+      console.log('Fetched messages:', res.data);
+      
       const messages = Array.isArray(res?.data) 
         ? res.data.map(msg => {
-            // Debug log for each message
-            console.log('Processing message:', msg);
-            
-            // Handle image URL
+            // Process image URL if it exists
             let imageUrl = null;
             if (msg.image) {
-              // Check if the image URL is already absolute
-              imageUrl = msg.image.startsWith('http') 
-                ? msg.image 
-                : `https://talko-backend.onrender.com${msg.image.startsWith('/') ? '' : '/'}${msg.image}`;
-              
-              console.log('Processed image URL:', { original: msg.image, processed: imageUrl });
+              // If it's already a URL string
+              if (typeof msg.image === 'string') {
+                imageUrl = msg.image.startsWith('http') 
+                  ? msg.image 
+                  : `https://talko-backend.onrender.com${msg.image.startsWith('/') ? '' : '/'}${msg.image}`;
+              } 
+              // If it's an object (from ImageKit), use the URL property
+              else if (msg.image.url) {
+                imageUrl = msg.image.url;
+              }
+              // If it's an object with a different structure, try to find the URL
+              else if (msg.image.imageUrl) {
+                imageUrl = msg.image.imageUrl;
+              }
             }
             
             return {
               ...msg,
-              image: imageUrl
+              image: imageUrl ? {
+                url: imageUrl,
+                // Include thumbnail if available
+                thumbnailUrl: msg.image?.thumbnailUrl || msg.image?.thumbnails?.[0] || null
+              } : null
             };
           })
         : [];
         
       console.log('Processed messages:', messages);
       set({ messages });
+      return messages;
+      
     } catch (error) {
-      console.error(
-        "Error fetching messages:", 
-        error.response?.data?.message || error.message
-      );
+      console.error("Error fetching messages:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
       set({ messages: [] });
+      throw error;
     } finally {
       set({ isMessagesLoading: false });
     }
