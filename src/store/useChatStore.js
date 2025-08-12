@@ -93,14 +93,46 @@ export const useChatStore = create((set, get) => ({
       const res = await axios.post(
         `https://talko-backend.onrender.com/api/messages/send/${selectedUser.clerkUserId}`,
         messageData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data' // Important for file uploads
+          },
+          timeout: 30000 // Increase timeout for file uploads
+        }
       );
 
+      console.log('Message sent successfully:', res.data);
+      
+      // Process the new message to ensure proper image URL
       const newMessage = res.data;
-      set({ messages: [...messages, newMessage] });
+      if (newMessage.image) {
+        // If the image is from ImageKit, use the URL directly
+        if (typeof newMessage.image === 'object' && newMessage.image.url) {
+          newMessage.image = newMessage.image.url;
+        }
+        // Ensure it's a valid URL
+        else if (typeof newMessage.image === 'string' && !newMessage.image.startsWith('http')) {
+          newMessage.image = `https://talko-backend.onrender.com${newMessage.image.startsWith('/') ? '' : '/'}${newMessage.image}`;
+        }
+      }
+
+      // Add the new message to the current messages
+      set({ 
+        messages: [...messages, newMessage].sort((a, b) => 
+          new Date(a.createdAt) - new Date(b.createdAt)
+        )
+      });
+      
       return newMessage;
     } catch (error) {
-      console.error(error.response?.data?.message || "Failed to send message");
+      console.error('Error sending message:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      throw error; // Re-throw to handle in the component
     }
   },
 
