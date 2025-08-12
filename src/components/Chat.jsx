@@ -129,12 +129,18 @@ const Chat = () => {
               </div>
               <div className={styles.chatBubble}>
                 {message.image && (
-                  <img
-                    src={message.image}
-                    alt="Attachment"
-                    className="max-w-full sm:max-w-xs md:max-w-sm rounded-md mb-2"
-                    loading="lazy"
-                  />
+                  <div className="relative">
+                    <img
+                      src={message.image.startsWith('http') ? message.image : `https://talko-backend.onrender.com/${message.image}`}
+                      alt="Attachment"
+                      className="max-w-full sm:max-w-xs md:max-w-sm rounded-md mb-2"
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error('Failed to load image:', message.image, e);
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
                 )}
                 {message.text && <p className="break-words">{message.text}</p>}
               </div>

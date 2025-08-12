@@ -46,18 +46,29 @@ export const useChatStore = create((set, get) => ({
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          timeout: 10000 // 10 second timeout
+          timeout: 10000
         }
       );
-      // Ensure we have an array and handle potential undefined/null responses
-      const messages = Array.isArray(res?.data) ? res.data : [];
+      
+      // Process messages to ensure proper image URLs
+      const messages = Array.isArray(res?.data) 
+        ? res.data.map(msg => ({
+            ...msg,
+            // Ensure image URL is absolute
+            image: msg.image 
+              ? msg.image.startsWith('http') 
+                ? msg.image 
+                : `https://talko-backend.onrender.com/${msg.image}`
+              : null
+          }))
+        : [];
+        
       set({ messages });
     } catch (error) {
       console.error(
         "Error fetching messages:", 
         error.response?.data?.message || error.message
       );
-      // Set empty array on error to prevent undefined state
       set({ messages: [] });
     } finally {
       set({ isMessagesLoading: false });
@@ -112,7 +123,6 @@ export const useChatStore = create((set, get) => ({
       return;
     }
     
-    // Clean up any existing listeners to prevent duplicates
     socket.off("newMessage");
     
     socket.on("newMessage", (newMessage) => {
@@ -122,13 +132,23 @@ export const useChatStore = create((set, get) => ({
           return;
         }
         
+        // Process image URL for new messages
+        const processedMessage = {
+          ...newMessage,
+          image: newMessage.image 
+            ? newMessage.image.startsWith('http')
+              ? newMessage.image
+              : `https://talko-backend.onrender.com/${newMessage.image}`
+            : null
+        };
+        
         const { messages } = get();
-        const isFromSelected = newMessage.fromClerkId === selectedUser.clerkUserId;
-        const isDuplicate = messages.some(msg => msg._id === newMessage._id);
+        const isFromSelected = processedMessage.fromClerkId === selectedUser.clerkUserId;
+        const isDuplicate = messages.some(msg => msg._id === processedMessage._id);
         
         if (isFromSelected && !isDuplicate) {
           set({ 
-            messages: [...messages, newMessage].sort((a, b) => 
+            messages: [...messages, processedMessage].sort((a, b) => 
               new Date(a.createdAt) - new Date(b.createdAt)
             )
           });
